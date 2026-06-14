@@ -1,13 +1,14 @@
 import { useLaunchContext } from '../common/base'
+import { assertOverlayHidden, waitForLimitFrame } from '../common/overlay'
 import { MOCK_URL, sleep } from '../common/util'
-import { createLimitRule, fillTimeLimit, isLimitModalVisible, waitForLimitFrame } from "./common"
+import { createLimitRule, fillTimeLimit } from "./common"
 
 describe('Daily limit', () => {
     const context = useLaunchContext()
 
     test('basic time limit', async () => {
         const limitTime = 2
-        const limitPage = await context.openAppPage('/behavior/limit')
+        const limitPage = await context.openAppPage('/productivity/limit')
         const demoRule: tt4b.limit.Rule = {
             id: 1, name: 'TEST DAILY LIMIT',
             cond: [MOCK_URL],
@@ -79,13 +80,11 @@ describe('Daily limit', () => {
 
         // 7. Modal disappear
         await testPage.bringToFront()
-        await sleep(.5)
-        const modalExist = await isLimitModalVisible(testPage)
-        expect(modalExist).toBeFalsy()
+        await assertOverlayHidden(testPage)
     }, 60000)
 
     test("Daily visit limit", async () => {
-        const limitPage = await context.openAppPage('/behavior/limit')
+        const limitPage = await context.openAppPage('/productivity/limit')
         const demoRule: tt4b.limit.Rule = {
             id: 1, name: 'TEST DAILY VISIT LIMIT',
             cond: [MOCK_URL],
@@ -131,23 +130,16 @@ describe('Daily limit', () => {
         // 4. Change visit limit
         await limitPage.bringToFront()
         await limitPage.click('.el-card__body .el-table tr td .el-button--primary')
-
-        await sleep(.1)
+        await limitPage.click('.el-dialog .el-button.el-button--primary')
         await limitPage.click('.el-dialog .el-button.el-button--primary')
 
-        await sleep(.1)
-        await limitPage.click('.el-dialog .el-button.el-button--primary')
-
-        await sleep(.1)
-        const visitInput = await limitPage.$('.el-dialog .el-input-number input')
+        const visitInput = await limitPage.waitForSelector('.el-dialog .el-input-number input')
         await visitInput!.focus()
         await limitPage.keyboard.type('2')
         await limitPage.click('.el-dialog .el-button.el-button--success')
 
         // 5. The modal disappear
         await testPage.bringToFront()
-        await sleep(.5)
-        const modalExist = await isLimitModalVisible(testPage)
-        expect(modalExist).toBeFalsy()
+        await assertOverlayHidden(testPage)
     }, 60000)
 })

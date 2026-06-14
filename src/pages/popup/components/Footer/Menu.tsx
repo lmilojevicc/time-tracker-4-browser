@@ -1,8 +1,8 @@
-import { Histogram, PieChart, Timer } from '@element-plus/icons-vue'
+import { Aim, Histogram, PieChart, Timer } from '@element-plus/icons-vue'
 import { useMenu } from '@popup/context'
 import { t } from '@popup/locale'
-import { isMenu } from '@popup/router'
 import { ElIcon, ElRadioButton, ElRadioGroup, ElTooltip } from "element-plus"
+import { createStringUnionGuard } from 'typescript-guard'
 import { type Component, defineComponent, h } from "vue"
 
 type MenuItem = {
@@ -24,14 +24,20 @@ const createItems = (): MenuItem[] => [
         route: 'limit',
         label: t(msg => msg.base.limit),
         icon: Timer,
-    }
-] as const
+    }, {
+        route: 'focus',
+        label: t(msg => msg.shared.focus.menu),
+        icon: Aim,
+    },
+]
+
+export const isMenu = createStringUnionGuard<tt4b.ui.PopupMenu>('limit', 'percentage', 'ranking', 'focus')
 
 const Menu = defineComponent(() => {
-    const { menu, setMenu } = useMenu()
+    const menu = useMenu()
 
     return () => (
-        <ElRadioGroup modelValue={menu.value} onChange={v => isMenu(v) && setMenu(v)}>
+        <ElRadioGroup modelValue={menu.value} onChange={v => isMenu(v) && (menu.value = v)}>
             {createItems().map(({ route, label, icon }) => (
                 <ElRadioButton value={route}>
                     <ElTooltip content={label}>

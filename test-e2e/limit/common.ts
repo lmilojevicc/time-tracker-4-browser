@@ -1,24 +1,12 @@
-import type { ElementHandle, Frame, Page } from "puppeteer"
+import type { ElementHandle, Page } from "puppeteer"
 import { fillCondEditor } from "../common/cond-editor"
+import { waitForLimitFrame } from '../common/overlay'
 import { sleep } from "../common/util"
 
-export async function waitForLimitFrame(page: Page, timeout = 5000): Promise<Frame> {
-    return page.waitForFrame(f => f.url().includes('limit.html'), { timeout })
-}
+type RuleCreate = Omit<tt4b.limit.Rule, 'id' | 'enabled' | 'blocked' | 'locked'>
 
-export async function isLimitModalVisible(page: Page): Promise<boolean> {
-    await page.waitForSelector('extension-time-tracker-overlay', { timeout: 3000 })
-    return await page.evaluate(async () => {
-        const overlay = document.querySelector('extension-time-tracker-overlay')
-        if (!overlay) return false
-        const iframe = overlay.shadowRoot?.firstElementChild
-        return iframe instanceof HTMLIFrameElement
-            && iframe.style.visibility !== 'hidden'
-            && iframe.style.display !== 'none'
-    })
-}
-
-export async function createLimitRule(rule: tt4b.limit.Rule, page: Page) {
+export async function createLimitRule(rule: RuleCreate, page: Page) {
+    const { name, cond, time, weekly, visitTime, count, weeklyCount } = rule
     const createButton = await page.$('.el-card:first-child .el-button:last-child')
     await createButton!.click()
     // 1 Fill the name
@@ -27,23 +15,22 @@ export async function createLimitRule(rule: tt4b.limit.Rule, page: Page) {
     await nameInput!.focus()
     await nameInput?.click({ count: 3 })
     await sleep(.1)
-    page.keyboard.type(rule.name)
+    await page.keyboard.type(name)
     await new Promise(resolve => setTimeout(resolve, 400))
     await page.click('.el-dialog .el-button.el-button--primary')
     // 2. Fill the condition
-    await fillCondEditor(page, rule.cond || [], '.el-dialog')
+    await fillCondEditor(page, cond, '.el-dialog')
     await sleep(.1)
     await page.click('.el-dialog .el-button.el-button--primary')
     // 3. Fill the rule
     await sleep(.1)
-    const { time, weekly, visitTime, count, weeklyCount } = rule || {}
     const [fstTime, secTime, trdTime] = await page.$$('.el-dialog .el-date-editor input')
     fstTime && await fillTimeLimit(time, fstTime, page)
     secTime && await fillTimeLimit(weekly, secTime, page)
     trdTime && await fillTimeLimit(visitTime, trdTime, page)
     const [fstVisit, secVisit] = await page.$$('.el-dialog .el-input-number input')
-    fstVisit && await fillVisitLimit(count!, fstVisit, page)
-    secVisit && await fillVisitLimit(weeklyCount!, secVisit, page)
+    fstVisit && await fillVisitLimit(count ?? 0, fstVisit, page)
+    secVisit && await fillVisitLimit(weeklyCount ?? 0, secVisit, page)
 
     // 4. Save
     await sleep(.3)
